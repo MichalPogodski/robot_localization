@@ -230,7 +230,7 @@ def main():
         view.update(env, P)
         update(rate)
         # uncomment to pause before action
-        view.pause()
+        # view.pause()
 
         env.doAction(action)
 
