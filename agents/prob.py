@@ -36,45 +36,57 @@ class LocAgent:
         self.prev_action = None
         self.dir = None
         self.prev_dir = None
-        self.t = 0
         prob = 1.0 / len(self.locations)
         self.P = prob * np.ones([len(self.locations)], dtype=np.float)
-
+        self.dir_prob = np.zeros((len(self.locations)), dtype=str)
     def __call__(self, percept):
         # update posterior
         # TODO PUT YOUR CODE HERE
+        # prob = 1.0 / len(self.locations)    ZERUJE OBLICZENIA CO KROK
+        # self.P = prob * np.ones([len(self.locations)], dtype=np.float)  ZERUJE OBLICZENIA CO KROK
+        # sensor prob
+        sensor_prob = np.zeros((len(self.locations), 4), dtype=float)
+        for idx, loc in enumerate(self.locations):
+            prob = [1.0, 1.0, 1.0, 1.0]
+            dirs = ['N', 'E', 'S', 'W']
+            for i, neig in enumerate(dirs):
+                neig_loc = nextLoc(loc, neig)
+                if (neig in percept) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
+                    prob[i] *= 0.9
+                else:
+                    prob[i] *= 0.1
 
-        #direction prob
-        directions = np.zeros((len(self.locations),  4), dtype=float)
-        dirs = ['N', 'E', 'S', 'W']
-        for idx, loc in enumerate(self.directions):
-            if self.prev_action == "forward":
-                loc = self.prev_dir
-        else:
-            i = 10
-            for j, elem in enumerate(dirs):
-                if elem == self.prev_dir:
-                    i = j
-                    break
-            if self.prev_action == "turnright":
-                loc[i+1] = 0.95
-                loc[i] = 0.5
-            elif self.prev_action == "turnleft":
-                loc[i-1] = 0.95
-                loc[i] = 0.5
+            for i, dir in enumerate(dirs):
+                pr_idx = 10
+                for i, pr in enumerate(dirs):
+                    if self.prev_dir == pr:
+                        pr_idx = i
+                if self.prev_action == "turnleft":
+                    if (i - 1) < 0 : i = 4
+                    prob[i-1] *= 0.95
+                    prob[i] *= 0.05
+                elif self.prev_action == "turnright":
+                    if (i + 1) > 3: i = -1
+                    prob[i + 1] *= 0.95
+                    prob[i] *= 0.05
+
+            sensor_prob[idx] = prob
+
+
+            # dirs prob
+            dirs = ['N', 'E', 'S', 'W']
+            for idx, loc in enumerate(sensor_prob):
+                max_prob = max(loc)
+                for i, dir in enumerate(dirs):
+                    if loc[i] == max_prob:
+                        self.dir_prob[idx] = dirs[i]
 
 
         # transition prob
-        transitions = np.zeros((len(self.locations), len(self.locations)), dtype=float)
+        transitions = np.zeros((len(self.locations), len(self.locations), 4), dtype=float)
         if self.prev_action == "forward":
             for idx, loc in enumerate(self.locations):
-                high_prob_dir = max(directions[idx, idx])
-                for i, elem in enumerate(dirs):
-                    if directions[idx, idx, i] == high_prob_dir:
-                        self.dir = dirs[i]
-                        self.prev_dir = self.dir
-                print('#######', dirs[i])
-                next_loc = nextLoc(loc, self.dir)
+                next_loc = nextLoc(loc, dir_prob[idx])
                 if (next_loc not in self.walls) and (legalLoc(next_loc, self.size)):
                     next_idx = self.loc_to_idx[next_loc]
                     transitions[idx, next_idx] = 0.95
@@ -85,22 +97,9 @@ class LocAgent:
             for idx, loc in enumerate(self.locations):
                 transitions[idx, idx] = 1.0
 
-        # sensor prob
-        sensor_prob = np.zeros((len(self.locations)), dtype=float)
-        for idx, loc in enumerate(self.locations):
-            prob = 1.0
-            neig_dirs = ['N', 'E', 'S', 'W']
-            for dir in neig_dirs:
-                neig_loc = nextLoc(loc, dir)
-                if (dir in percept) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
-                    prob *= 0.9
-                else:
-                    prob *= 0.1
-            sensor_prob[idx] = prob
-
-        self.t += 1
-        self.P = transitions.transpose() @ self.P
-        self.P = sensor_prob * self.P
+        print('###############', transitions.shape, self.P.shape)
+        self.P = np.dot(transitions.transpose(), self.P)
+        self.P = sensor_prob.transpose() * self.P
         self.P /= np.sum(self.P)
 
         # -----------------------
@@ -125,6 +124,8 @@ class LocAgent:
 
         # put probabilities in the array
         # TODO PUT YOUR CODE HERE
+        for idx, loc in enumerate(self.locations):
+            P_arr[loc[0], loc[1]] = self.P[idx]
 
 
         # -----------------------
