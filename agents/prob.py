@@ -35,15 +35,16 @@ class LocAgent:
         # previous action
         self.prev_action = None
         self.dir = None
-        self.prev_dir = None
         prob = 1.0 / len(self.locations)
-        self.P = prob * np.ones([len(self.locations)], dtype=np.float)
+        self.P = prob * np.ones([len(self.locations), 4], dtype=np.float)
         self.dir_prob = np.zeros((len(self.locations)), dtype=str)
+
+
+
     def __call__(self, percept):
         # update posterior
         # TODO PUT YOUR CODE HERE
-        # prob = 1.0 / len(self.locations)    ZERUJE OBLICZENIA CO KROK
-        # self.P = prob * np.ones([len(self.locations)], dtype=np.float)  ZERUJE OBLICZENIA CO KROK
+
         # sensor prob
         sensor_prob = np.zeros((len(self.locations), 4), dtype=float)
         for idx, loc in enumerate(self.locations):
@@ -51,24 +52,57 @@ class LocAgent:
             dirs = ['N', 'E', 'S', 'W']
             for i, neig in enumerate(dirs):
                 neig_loc = nextLoc(loc, neig)
-                if (neig in percept) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
+
+                translated = []
+                pom_dict = {}
+                pom_dict['fwd'] = 'N'
+                pom_dict['right'] = 'E'
+                pom_dict['bckwd'] = 'S'
+                pom_dict['left'] = 'W'
+                if self.dir_prob[idx] == 'N':
+                    pom_dict['fwd'] = 'N'
+                    pom_dict['right'] = 'E'
+                    pom_dict['bckwd'] = 'S'
+                    pom_dict['left'] = 'W'
+                elif self.dir_prob[idx] == 'E':
+                    pom_dict['fwd'] = 'E'
+                    pom_dict['right'] = 'S'
+                    pom_dict['bckwd'] = 'W'
+                    pom_dict['left'] = 'N'
+                elif self.dir_prob[idx] == 'S':
+                    pom_dict['fwd'] = 'S'
+                    pom_dict['right'] = 'W'
+                    pom_dict['bckwd'] = 'N'
+                    pom_dict['left'] = 'E'
+                elif self.dir_prob[idx] == 'W':
+                    pom_dict['fwd'] = 'W'
+                    pom_dict['right'] = 'N'
+                    pom_dict['bckwd'] = 'E'
+                    pom_dict['left'] = 'S'
+                for elem in percept:
+                    translated.append(pom_dict[elem])
+                # print('^^^^^^^^^^^^^^^^^^^^^^', self.dir_prob[idx], percept, translated)
+                if (neig in translated) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
                     prob[i] *= 0.9
                 else:
                     prob[i] *= 0.1
-
             for i, dir in enumerate(dirs):
                 pr_idx = 10
+                prev_dir = self.dir_prob[idx]
                 for i, pr in enumerate(dirs):
-                    if self.prev_dir == pr:
+                    if prev_dir == pr:
                         pr_idx = i
                 if self.prev_action == "turnleft":
-                    if (i - 1) < 0 : i = 4
+                    if (i - 1) < 0: i = 4
                     prob[i-1] *= 0.95
                     prob[i] *= 0.05
                 elif self.prev_action == "turnright":
                     if (i + 1) > 3: i = -1
                     prob[i + 1] *= 0.95
                     prob[i] *= 0.05
+                elif self.prev_action == "forward":
+                    prob[i] *= 0.95
+                    prob[(i+2)%4] *= 0.05
 
             sensor_prob[idx] = prob
 
@@ -77,16 +111,18 @@ class LocAgent:
             dirs = ['N', 'E', 'S', 'W']
             for idx, loc in enumerate(sensor_prob):
                 max_prob = max(loc)
+                print('%%%%%%%%%%%%%%%%%%%%', idx, 'all dirs_prob: ', loc, '\n max_prob_dir: ', max_prob)
                 for i, dir in enumerate(dirs):
                     if loc[i] == max_prob:
                         self.dir_prob[idx] = dirs[i]
+                print('________________', self.dir_prob[idx])
 
 
         # transition prob
-        transitions = np.zeros((len(self.locations), len(self.locations), 4), dtype=float)
+        transitions = np.zeros((len(self.locations), len(self.locations)), dtype=float)
         if self.prev_action == "forward":
             for idx, loc in enumerate(self.locations):
-                next_loc = nextLoc(loc, dir_prob[idx])
+                next_loc = nextLoc(loc, self.dir_prob[idx])
                 if (next_loc not in self.walls) and (legalLoc(next_loc, self.size)):
                     next_idx = self.loc_to_idx[next_loc]
                     transitions[idx, next_idx] = 0.95
@@ -97,12 +133,11 @@ class LocAgent:
             for idx, loc in enumerate(self.locations):
                 transitions[idx, idx] = 1.0
 
-        print('###############', transitions.shape, self.P.shape)
-        self.P = np.dot(transitions.transpose(), self.P)
-        self.P = sensor_prob.transpose() * self.P
+        self.P = sensor_prob * np.dot(transitions.transpose(), self.P)
         self.P /= np.sum(self.P)
 
         # -----------------------
+
 
         action = 'forward'
         # TODO CHANGE THIS HEURISTICS TO SPEED UP CONVERGENCE
