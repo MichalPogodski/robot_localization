@@ -79,31 +79,29 @@ class LocAgent:
                     pom_dict['right'] = 'N'
                     pom_dict['bckwd'] = 'E'
                     pom_dict['left'] = 'S'
+
                 for elem in percept:
                     translated.append(pom_dict[elem])
-                # print('^^^^^^^^^^^^^^^^^^^^^^', self.dir_prob[idx], percept, translated)
+
                 if (neig in translated) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
                     prob[i] *= 0.9
                 else:
                     prob[i] *= 0.1
-            for i, dir in enumerate(dirs):
-                pr_idx = 10
+
+
+                pr_idx = None
                 prev_dir = self.dir_prob[idx]
                 for i, pr in enumerate(dirs):
                     if prev_dir == pr:
                         pr_idx = i
                 if self.prev_action == "turnleft":
-                    if (i - 1) < 0: i = 4
-                    prob[i-1] *= 0.95
-                    prob[i] *= 0.05
+                    prob[(pr_idx+3)%4] *= 0.95
+                    prob[pr_idx] *= 0.05
                 elif self.prev_action == "turnright":
-                    if (i + 1) > 3: i = -1
-                    prob[i + 1] *= 0.95
-                    prob[i] *= 0.05
-                elif self.prev_action == "forward":
-                    prob[i] *= 0.95
-                    prob[(i+2)%4] *= 0.05
+                    prob[(pr_idx+1)%4] *= 0.95
+                    prob[pr_idx] *= 0.05
 
+            prob /= np.sum(prob)
             sensor_prob[idx] = prob
 
 
@@ -111,11 +109,9 @@ class LocAgent:
             dirs = ['N', 'E', 'S', 'W']
             for idx, loc in enumerate(sensor_prob):
                 max_prob = max(loc)
-                print('%%%%%%%%%%%%%%%%%%%%', idx, 'all dirs_prob: ', loc, '\n max_prob_dir: ', max_prob)
                 for i, dir in enumerate(dirs):
                     if loc[i] == max_prob:
-                        self.dir_prob[idx] = dirs[i]
-                print('________________', self.dir_prob[idx])
+                        self.dir_prob[idx] = dir
 
 
         # transition prob
@@ -159,10 +155,9 @@ class LocAgent:
 
         # put probabilities in the array
         # TODO PUT YOUR CODE HERE
+        pom = np.zeros(len(self.locations), dtype = float)
         for idx, loc in enumerate(self.locations):
             P_arr[loc[0], loc[1]] = self.P[idx]
-
-
         # -----------------------
 
         return P_arr
