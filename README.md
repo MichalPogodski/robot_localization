@@ -1,5 +1,6 @@
 # RAPORT projekt lokalizacja
 
+
 ## Lokalizacja
 
 Obliczanie rozkładu lokalizacji robota zostało przeprowadzone poprzez:
@@ -19,6 +20,7 @@ W wyznaczaniu wartości prawdopodobieństwa uwzględnione zostały możliwe bł�
 ### Rozkład prawdopodobieństwa występowania przeszkód w miejscach wskazanych przez sensor
 został wyznaczony poprzez sprawdzenie sąsiedztwa robota w lokacjach wskazanych przez sensor. W tym celu należało określić kierunek (N, E, S  lub W), na podstawie informacji zwracanych przez sensor (dla konkretnego kierunku względem robota, orientacja zamieniona została na kierunek geograficzny).
 W wyznaczonym rozkładzie uwzględnione zostały możliwe błędy w danych zwracanych przez sensor. 
+
 
 ## Heurystyka
 Heurystyka poruszająca robotem bazuje na regule, wedle której można szukać wyjścia z labiryntu. Mianowicie, należy przemieszczać się nie odrywając ręki od prawej (lub lewej) ściany. 
