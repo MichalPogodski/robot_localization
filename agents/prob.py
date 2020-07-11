@@ -37,33 +37,12 @@ class LocAgent:
         self.dir = None
         prob = 1.0 / len(self.locations)
         self.P = prob * np.ones([len(self.locations), 4], dtype=np.float)
-        self.dirs_matrix = np.zeros((len(self.locations)), dtype=str)
-
+        self.dir_prob = [0.25, 0.25, 0.25, 0.25]
 
 
     def __call__(self, percept):
         # update posterior
         # TODO PUT YOUR CODE HERE
-
-        #direction prob
-        dir_prob = np.ones(4, dtype=float)
-        pr_idx = None
-        dirs = ['N', 'E', 'S', 'W']
-        prev_dir = self.dir
-        for i, pr in enumerate(dirs):
-            if prev_dir == pr:
-                pr_idx = i
-        if self.prev_action == "turnleft":
-            dir_prob[(pr_idx + 3) % 4] *= 0.95
-            dir_prob[pr_idx] *= 0.05
-        elif self.prev_action == "turnright":
-            dir_prob[(pr_idx + 1) % 4] *= 0.95
-            dir_prob[pr_idx] *= 0.05
-
-
-        # max_prob = max(dir_prob)
-        # for ind, elem in enumerate(dir_prob):
-        #     if elem == max_prob: self.dir = dirs[ind]
 
 
         # sensor prob
@@ -109,25 +88,41 @@ class LocAgent:
                 else:
                     prob *= 0.1
 
-            for i in range(len(dir_prob)):
-               dir_prob[i] *= prob
+            # direction prob
+            pr_idx = None
+            dirs = ['N', 'E', 'S', 'W']
+            prev_dir = self.dir
+            for i, pr in enumerate(dirs):
+                if prev_dir == pr:
+                    pr_idx = i
+            if self.prev_action == "turnleft":
+                self.dir_prob[(pr_idx + 3) % 4] *= 0.95
+                self.dir_prob[pr_idx] *= 0.05
+            elif self.prev_action == "turnright":
+                self.dir_prob[(pr_idx + 1) % 4] *= 0.95
+                self.dir_prob[pr_idx] *= 0.05
 
-            # dir_prob /= np.sum(dir_prob)
-            sensor_prob[idx] = dir_prob
-
-            max_prob = max(dir_prob)
-            for ind, elem in enumerate(dir_prob):
+            max_prob = max(self.dir_prob)
+            for ind, elem in enumerate(self.dir_prob):
                 if elem == max_prob:
                     self.dir = dirs[ind]
-                    self.dirs_matrix[idx] = dirs[ind]
 
+            if self.prev_action == "turnleft" or self.prev_action == "turnright":
+                for idx, loc in enumerate(self.locations):
+                    for i in range(len(self.dir_prob)):
+                       self.dir_prob[i] *= prob
+
+                    self.dir_prob /= np.sum(self.dir_prob)
+                    sensor_prob[idx] = self.dir_prob
+            else:
+                sensor_prob[idx] = [prob, prob, prob, prob]
 
 
         # transition prob
         transitions = np.zeros((len(self.locations), len(self.locations)), dtype=float)
         if self.prev_action == "forward":
             for idx, loc in enumerate(self.locations):
-                next_loc = nextLoc(loc, self.dirs_matrix[idx])
+                next_loc = nextLoc(loc, self.dir)
                 if (next_loc not in self.walls) and (legalLoc(next_loc, self.size)):
                     next_idx = self.loc_to_idx[next_loc]
                     transitions[idx, next_idx] = 0.95
@@ -138,11 +133,10 @@ class LocAgent:
             for idx, loc in enumerate(self.locations):
                 transitions[idx, idx] = 1.0
 
+
         self.P = sensor_prob * np.dot(transitions.transpose(), self.P)
-        # for id, tab in enumerate(self.P):
-        #     for i, elem in enumerate(tab):
-        #         print(id, i, elem, type(elem))
-        # if np.sum(self.P) != 0:  self.P /= np.sum(self.P)
+        # print('#######', np.sum(self.P), np.sum(transitions), np.sum(sensor_prob), np.sum(self.dir_prob))
+        print('________________', self.dir)
         self.P /= np.sum(self.P)
 
         # -----------------------
