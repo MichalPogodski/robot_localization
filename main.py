@@ -235,7 +235,7 @@ def main():
         env.doAction(action)
 
     # pause until mouse clicked
-    view.pause()
+    # view.pause()
 
 
 if __name__ == '__main__':

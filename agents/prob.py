@@ -54,10 +54,7 @@ class LocAgent:
                 neig_loc = nextLoc(loc, neig)
                 translated = []
                 pom_dict = {}
-                pom_dict['fwd'] = 'N'
-                pom_dict['right'] = 'E'
-                pom_dict['bckwd'] = 'S'
-                pom_dict['left'] = 'W'
+
                 if neig == 'N':
                     pom_dict['fwd'] = 'N'
                     pom_dict['right'] = 'E'
