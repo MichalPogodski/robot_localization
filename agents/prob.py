@@ -41,6 +41,7 @@ class LocAgent:
 
 
 
+
     def __call__(self, percept):
         # update posterior
         # TODO PUT YOUR CODE HERE
@@ -86,9 +87,10 @@ class LocAgent:
                 else:
                     prob *= 1.0
             sensor_prob[idx] = [prob, prob, prob, prob]
+        sensor_prob = sensor_prob.flatten()
 
         # transition prob
-        transitions = np.zeros((len(self.locations), len(self.locations)), dtype=float)
+        transitions = np.zeros((4 * len(self.locations), 4 * len(self.locations)), dtype=float)
         if self.prev_action == "forward":
             for idx, loc in enumerate(self.locations):
                 for i, dir in enumerate(dirs):
@@ -96,31 +98,36 @@ class LocAgent:
                         next_loc = nextLoc(loc, dir)
                         if (next_loc not in self.walls) and (legalLoc(next_loc, self.size)):
                             next_idx = self.loc_to_idx[next_loc]
-                            transitions[idx, next_idx] = 0.95
-                            transitions[idx, idx] = 0.05
+                            transitions[idx + (i * len(self.locations)), next_idx + (i * len(self.locations))] = 0.95
+                            transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
                         else:
-                            transitions[idx, idx] = 1.0
+                            transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 1.0
         else:
             for idx, loc in enumerate(self.locations):
                 transitions[idx, idx] = 1.0
 
-        # direction prob
-        dir_prob = np.zeros([4, 4], dtype=np.float)
-        for i in range(4):
-            if self.prev_action == "turnleft":
-                dir_prob[(i + 3) % 4, (i + 3) % 4] = 0.95
-                dir_prob[i, i] = 0.05
-            elif self.prev_action == "turnright":
-                dir_prob[(i + 1) % 4, (i + 1) % 4] = 0.95
-                dir_prob[i, i] = 0.05
-            elif self.prev_action == "forward":
-                dir_prob[i, i] = 1.0
+        # # direction prob
+        # dir_prob = np.zeros([4, 4], dtype=np.float)
+        # for i in range(4):
+        #     if self.prev_action == "turnleft":
+        #         dir_prob[(i + 3) % 4, (i + 3) % 4] = 0.95
+        #         dir_prob[i, i] = 0.05
+        #     elif self.prev_action == "turnright":
+        #         dir_prob[(i + 1) % 4, (i + 1) % 4] = 0.95
+        #         dir_prob[i, i] = 0.05
+        #     elif self.prev_action == "forward":
+        #         dir_prob[i, i] = 1.0
 
-        self.P = np.dot(transitions.transpose(), self.P)
-        self.P = sensor_prob * np.dot(self.P, dir_prob)
-        self.P /= np.sum(self.P)
+        # self.P = np.dot(transitions.transpose(), self.P)
+        # self.P = sensor_prob * np.dot(self.P, dir_prob)
+        # self.P /= np.sum(self.P)
+        temp_P = self.P.flatten()
+        temp_P = np.dot(transitions.transpose(), temp_P)
+        temp_P = sensor_prob * temp_P
+        temp_P /= np.sum(temp_P)
+        self.P = np.reshape(temp_P, (len(self.locations), 4))
         # -----------------------
-
+        ################################## ZAMIENIONY KIERUNEK POSTRZEGANIA Z ZAPISYWANYM KIERUNKIEM????????????
         action = 'forward'
         # TODO CHANGE THIS HEURISTICS TO SPEED UP CONVERGENCE
 
