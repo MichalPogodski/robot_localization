@@ -74,15 +74,21 @@ class LocAgent:
                     pom_dict['bckwd'] = 'E'
                     pom_dict['left'] = 'S'
 
-                if 'bump' not in percept:
-                    for elem in percept: translated.append(pom_dict[elem])
+
+                if 'bump' in percept and nextLoc(loc, neig) in self.walls:
+                    sensor_prob[idx, i] = 1.0
+                else:
+                    for elem in percept:
+                        if elem != 'bump':
+                            translated.append(pom_dict[elem])
                     if (neig in translated) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
                         sensor_prob[idx, i] = 0.9
                     else:
                         sensor_prob[idx, i] = 0.1
-                else:
-                    sensor_prob[idx, i] = 1.0 ################ POPRAW################################################
-        sensor_prob = sensor_prob.flatten()
+
+        sensor_prob = sensor_prob.flatten('F')
+
+
 
         # transition prob
         transitions = np.zeros((4 * len(self.locations), 4 * len(self.locations)), dtype=float)
@@ -92,9 +98,7 @@ class LocAgent:
                     if (nextLoc(loc, dir) not in self.walls) and (legalLoc(nextLoc(loc, dir), self.size)):
                         next_loc = nextLoc(loc, dir)
                         next_idx = self.loc_to_idx[next_loc]
-
                         transitions[idx + (i * len(self.locations)), next_idx + (i * len(self.locations))] = 0.95
-
                         transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
                     else:
                         transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 1.0
@@ -102,24 +106,33 @@ class LocAgent:
         elif self.prev_action == "turnright":
             for idx, loc in enumerate(self.locations):
                 for i, dir in enumerate(dirs):
-                    transitions[idx + (i * len(self.locations)), idx + ((i * len(self.locations)) + len(self.locations))%(4 * len(self.locations))] = 0.95
+                    transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) + len(self.locations))%(4 * len(self.locations))] = 0.95
                     transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
+                    # print("########## TurnRight: ", idx + (i * len(self.locations)), (idx + (i * len(self.locations)) + len(self.locations))%(4 * len(self.locations)))
 
         elif self.prev_action == "turnleft":
             for idx, loc in enumerate(self.locations):
                 for i, dir in enumerate(dirs):
-                    transitions[idx + (i * len(self.locations)), idx + ((i * len(self.locations)) - len(self.locations))%(4 * len(self.locations))] = 0.95
+                    transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) - len(self.locations))%(4 * len(self.locations))] = 0.95
                     transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
+                    # print("@@@@@@@@@@ TurnLeft: ", idx + (i * len(self.locations)), (idx + (i * len(self.locations)) - len(self.locations)) % (4 * len(self.locations)))
 
-
-        temp_P = self.P.flatten()
-        temp_P = np.multiply(sensor_prob, np.dot(transitions, temp_P))
-        self.P = np.reshape(temp_P, (len(self.locations), 4))
+        temp_P = self.P.flatten('F')
+        temp_P = np.multiply(sensor_prob, np.dot(transitions.transpose(), temp_P))
+        self.P = np.reshape(temp_P, (len(self.locations), 4), 'F')
         self.P /= np.sum(self.P)
         # -----------------------
 
         action = 'forward'
         # TODO CHANGE THIS HEURISTICS TO SPEED UP CONVERGENCE
+
+        # if 'fwd' in percept:
+        #     # higher chance of turning left to avoid getting stuck in one location
+        #     action = np.random.choice(['turnleft', 'turnright'], 1, p=[0.8, 0.2])
+        # else:
+        #     # prefer moving forward to explore
+        #     action = np.random.choice(['forward', 'turnleft', 'turnright'], 1, p=[0.8, 0.1, 0.1])
+
 
         if 'right' not in percept and self.prev_action != 'turnright':
             action = 'turnright'
@@ -127,6 +140,9 @@ class LocAgent:
             action = 'forward'
         else:
             action = 'turnleft'
+
+
+
 
         self.prev_action = action
 
