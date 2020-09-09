@@ -35,10 +35,8 @@ class LocAgent:
         # previous action
         self.prev_action = 'forward'
 
-        prob = 1.0 / len(self.locations)
+        prob = 1.0 / len(self.locations) / 4.0
         self.P = prob * np.ones([len(self.locations), 4], dtype=np.float)
-
-
 
 
 
@@ -48,9 +46,8 @@ class LocAgent:
         dirs = ['N', 'E', 'S', 'W']
 
         # sensor prob
-        sensor_prob = np.zeros((len(self.locations), 4), dtype=float)
+        sensor_prob = np.ones((len(self.locations), 4), dtype=float)
         for idx, loc in enumerate(self.locations):
-            prob = 1.0
             for i, neig in enumerate(dirs):
                 neig_loc = nextLoc(loc, neig)
                 translated = []
@@ -79,14 +76,12 @@ class LocAgent:
 
                 if 'bump' not in percept:
                     for elem in percept: translated.append(pom_dict[elem])
-
                     if (neig in translated) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
-                        prob *= 0.9
+                        sensor_prob[idx, i] *= 0.9
                     else:
-                        prob *= 0.1
+                        sensor_prob[idx, i] *= 0.1
                 else:
-                    prob *= 1.0
-            sensor_prob[idx] = [prob, prob, prob, prob]
+                    sensor_prob[idx, i] *= 1.0 ################ POPRAW################################################
         sensor_prob = sensor_prob.flatten()
 
         # transition prob
@@ -96,38 +91,33 @@ class LocAgent:
                 for i, dir in enumerate(dirs):
                     if (nextLoc(loc, dir) not in self.walls) and (legalLoc(nextLoc(loc, dir), self.size)):
                         next_loc = nextLoc(loc, dir)
-                        if (next_loc not in self.walls) and (legalLoc(next_loc, self.size)):
-                            next_idx = self.loc_to_idx[next_loc]
-                            transitions[idx + (i * len(self.locations)), next_idx + (i * len(self.locations))] = 0.95
-                            transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
-                        else:
-                            transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 1.0
-        else:
+                        next_idx = self.loc_to_idx[next_loc]
+
+                        transitions[idx + (i * len(self.locations)), next_idx + (i * len(self.locations))] = 0.95
+
+                        transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
+                    else:
+                        transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 1.0
+
+        elif self.prev_action == "turnright":
             for idx, loc in enumerate(self.locations):
-                transitions[idx, idx] = 1.0
+                for i, dir in enumerate(dirs):
+                    transitions[idx + (i * len(self.locations)), idx + ((i * len(self.locations)) + len(self.locations))%(4 * len(self.locations))] = 0.95
+                    transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
 
-        # # direction prob
-        # dir_prob = np.zeros([4, 4], dtype=np.float)
-        # for i in range(4):
-        #     if self.prev_action == "turnleft":
-        #         dir_prob[(i + 3) % 4, (i + 3) % 4] = 0.95
-        #         dir_prob[i, i] = 0.05
-        #     elif self.prev_action == "turnright":
-        #         dir_prob[(i + 1) % 4, (i + 1) % 4] = 0.95
-        #         dir_prob[i, i] = 0.05
-        #     elif self.prev_action == "forward":
-        #         dir_prob[i, i] = 1.0
+        elif self.prev_action == "turnleft":
+            for idx, loc in enumerate(self.locations):
+                for i, dir in enumerate(dirs):
+                    transitions[idx + (i * len(self.locations)), idx + ((i * len(self.locations)) - len(self.locations))%(4 * len(self.locations))] = 0.95
+                    transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
 
-        # self.P = np.dot(transitions.transpose(), self.P)
-        # self.P = sensor_prob * np.dot(self.P, dir_prob)
-        # self.P /= np.sum(self.P)
+
         temp_P = self.P.flatten()
-        temp_P = np.dot(transitions.transpose(), temp_P)
-        temp_P = sensor_prob * temp_P
-        temp_P /= np.sum(temp_P)
+        temp_P = np.multiply(sensor_prob, np.dot(transitions, temp_P))
         self.P = np.reshape(temp_P, (len(self.locations), 4))
+        self.P /= np.sum(self.P)
         # -----------------------
-        ################################## ZAMIENIONY KIERUNEK POSTRZEGANIA Z ZAPISYWANYM KIERUNKIEM????????????
+
         action = 'forward'
         # TODO CHANGE THIS HEURISTICS TO SPEED UP CONVERGENCE
 
