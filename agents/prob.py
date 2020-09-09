@@ -46,7 +46,7 @@ class LocAgent:
         dirs = ['N', 'E', 'S', 'W']
 
         # sensor prob
-        sensor_prob = np.ones((len(self.locations), 4), dtype=float)
+        sensor_prob = np.zeros((len(self.locations), 4), dtype=float)
         for idx, loc in enumerate(self.locations):
             for i, neig in enumerate(dirs):
                 neig_loc = nextLoc(loc, neig)
@@ -77,11 +77,11 @@ class LocAgent:
                 if 'bump' not in percept:
                     for elem in percept: translated.append(pom_dict[elem])
                     if (neig in translated) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
-                        sensor_prob[idx, i] *= 0.9
+                        sensor_prob[idx, i] = 0.9
                     else:
-                        sensor_prob[idx, i] *= 0.1
+                        sensor_prob[idx, i] = 0.1
                 else:
-                    sensor_prob[idx, i] *= 1.0 ################ POPRAW################################################
+                    sensor_prob[idx, i] = 1.0 ################ POPRAW################################################
         sensor_prob = sensor_prob.flatten()
 
         # transition prob
