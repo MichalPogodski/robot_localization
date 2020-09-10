@@ -85,9 +85,9 @@ class LocAgent:
                         else:
                             sensor_prob[idx, j] *= 0.0
                     elif (obst in translated) == ((not legalLoc(nextLoc(loc, obst), self.size)) or (nextLoc(loc, obst) in self.walls)):
-                        sensor_prob[idx, j] *= 0.9
+                        sensor_prob[idx, j] *= (1.0 - self.eps_perc)
                     else:
-                        sensor_prob[idx, j] *= 0.1
+                        sensor_prob[idx, j] *= self.eps_perc
 
         sensor_prob = sensor_prob.flatten('F')
 
@@ -104,8 +104,8 @@ class LocAgent:
                     elif (nextLoc(loc, dir) not in self.walls) and (legalLoc(nextLoc(loc, dir), self.size)):
                         next_loc = nextLoc(loc, dir)
                         next_idx = self.loc_to_idx[next_loc]
-                        transitions[idx + (i * len(self.locations)), next_idx + (i * len(self.locations))] = 0.95
-                        transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
+                        transitions[idx + (i * len(self.locations)), next_idx + (i * len(self.locations))] = (1.0 - self.eps_move)
+                        transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = self.eps_move
 
                     else:
                         transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 1.0
@@ -113,14 +113,17 @@ class LocAgent:
         elif self.prev_action == "turnright":
             for idx, loc in enumerate(self.locations):
                 for i, dir in enumerate(dirs):
-                    transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) + len(self.locations))%(4 * len(self.locations))] = 0.95
-                    transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
+                    transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) + len(self.locations))%(4 * len(self.locations))] = (1.0 - self.eps_move)
+                    transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = self.eps_move
 
         elif self.prev_action == "turnleft":
             for idx, loc in enumerate(self.locations):
                 for i, dir in enumerate(dirs):
-                    transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) - len(self.locations))%(4 * len(self.locations))] = 0.95
-                    transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
+                    transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) - len(self.locations))%(4 * len(self.locations))] = (1.0 - self.eps_move)
+                    transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = self.eps_move
+
+
+
 
         temp_P = self.P.flatten('F')
         temp_P = np.multiply(sensor_prob, np.dot(transitions.transpose(), temp_P))
