@@ -46,13 +46,13 @@ class LocAgent:
         dirs = ['N', 'E', 'S', 'W']
 
         # sensor prob
-        sensor_prob = np.zeros((len(self.locations), 4), dtype=float)
+        sensor_prob = np.ones((len(self.locations), 4), dtype=float)
         for idx, loc in enumerate(self.locations):
             for i, neig in enumerate(dirs):
                 neig_loc = nextLoc(loc, neig)
                 translated = []
                 pom_dict = {}
-
+                # creating a dict. contained translated sensor information (sens. info to directory)
                 if neig == 'N':
                     pom_dict['fwd'] = 'N'
                     pom_dict['right'] = 'E'
@@ -74,17 +74,35 @@ class LocAgent:
                     pom_dict['bckwd'] = 'E'
                     pom_dict['left'] = 'S'
 
+                # if robot hit a wall and next locations in this directory is the wall, there has to be an obstacle ???????????
+                # if 'bump' in percept and (nextLoc(loc, neig) in self.walls or (neig_loc in self.walls)):
+                #     sensor_prob[idx, i] = 1.0
+                # else:
+                #     for elem in percept:
+                #         if elem != 'bump':
+                #             translated.append(pom_dict[elem])
+                #
+                #     for j, obst in enumerate(dirs):
+                #         if (obst in translated) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
+                #             sensor_prob[idx, i] *= 0.9
+                #         else:
+                #             sensor_prob[idx, i] *= 0.1
 
-                if 'bump' in percept and nextLoc(loc, neig) in self.walls:
-                    sensor_prob[idx, i] = 1.0
-                else:
-                    for elem in percept:
-                        if elem != 'bump':
-                            translated.append(pom_dict[elem])
-                    if (neig in translated) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
-                        sensor_prob[idx, i] = 0.9
+
+                for elem in percept:
+                    if elem != 'bump':
+                        translated.append(pom_dict[elem])
+
+                for j, obst in enumerate(dirs):
+                    if 'bump' in percept:
+                        if (nextLoc(loc, obst) in self.walls or (nextLoc(loc, obst) in self.walls)): #next loc z neig czy obst czy co?!!!!!!!????????????
+                            sensor_prob[idx, j] *= 1.0
+                        else:
+                            sensor_prob[idx, j] = 0.0
+                    elif (obst in translated) == ((not legalLoc(nextLoc(loc, obst), self.size)) or (nextLoc(loc, obst) in self.walls)):
+                        sensor_prob[idx, j] *= 0.9
                     else:
-                        sensor_prob[idx, i] = 0.1
+                        sensor_prob[idx, j] *= 0.1
 
         sensor_prob = sensor_prob.flatten('F')
 
@@ -95,6 +113,9 @@ class LocAgent:
         if self.prev_action == "forward":
             for idx, loc in enumerate(self.locations):
                 for i, dir in enumerate(dirs):
+                    # if 'bump' in percept:
+                    #     transitions[idx, idx] = 1.0
+                    # elif (nextLoc(loc, dir) not in self.walls) and (legalLoc(nextLoc(loc, dir), self.size)):
                     if (nextLoc(loc, dir) not in self.walls) and (legalLoc(nextLoc(loc, dir), self.size)):
                         next_loc = nextLoc(loc, dir)
                         next_idx = self.loc_to_idx[next_loc]
@@ -108,14 +129,12 @@ class LocAgent:
                 for i, dir in enumerate(dirs):
                     transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) + len(self.locations))%(4 * len(self.locations))] = 0.95
                     transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
-                    # print("########## TurnRight: ", idx + (i * len(self.locations)), (idx + (i * len(self.locations)) + len(self.locations))%(4 * len(self.locations)))
 
         elif self.prev_action == "turnleft":
             for idx, loc in enumerate(self.locations):
                 for i, dir in enumerate(dirs):
                     transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) - len(self.locations))%(4 * len(self.locations))] = 0.95
                     transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
-                    # print("@@@@@@@@@@ TurnLeft: ", idx + (i * len(self.locations)), (idx + (i * len(self.locations)) - len(self.locations)) % (4 * len(self.locations)))
 
         temp_P = self.P.flatten('F')
         temp_P = np.multiply(sensor_prob, np.dot(transitions.transpose(), temp_P))
