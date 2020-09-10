@@ -49,7 +49,6 @@ class LocAgent:
         sensor_prob = np.ones((len(self.locations), 4), dtype=float)
         for idx, loc in enumerate(self.locations):
             for i, neig in enumerate(dirs):
-                neig_loc = nextLoc(loc, neig)
                 translated = []
                 pom_dict = {}
                 # creating a dict. contained translated sensor information (sens. info to directory)
@@ -74,20 +73,6 @@ class LocAgent:
                     pom_dict['bckwd'] = 'E'
                     pom_dict['left'] = 'S'
 
-                # if robot hit a wall and next locations in this directory is the wall, there has to be an obstacle ???????????
-                # if 'bump' in percept and (nextLoc(loc, neig) in self.walls or (neig_loc in self.walls)):
-                #     sensor_prob[idx, i] = 1.0
-                # else:
-                #     for elem in percept:
-                #         if elem != 'bump':
-                #             translated.append(pom_dict[elem])
-                #
-                #     for j, obst in enumerate(dirs):
-                #         if (obst in translated) == ((not legalLoc(neig_loc, self.size)) or (neig_loc in self.walls)):
-                #             sensor_prob[idx, i] *= 0.9
-                #         else:
-                #             sensor_prob[idx, i] *= 0.1
-
 
                 for elem in percept:
                     if elem != 'bump':
@@ -95,10 +80,10 @@ class LocAgent:
 
                 for j, obst in enumerate(dirs):
                     if 'bump' in percept:
-                        if (nextLoc(loc, obst) in self.walls or (nextLoc(loc, obst) in self.walls)): #next loc z neig czy obst czy co?!!!!!!!????????????
+                        if (not legalLoc(nextLoc(loc, obst), self.size) or (nextLoc(loc, obst) in self.walls)): #next loc z neig czy obst czy co?!!!!!!!????????????
                             sensor_prob[idx, j] *= 1.0
                         else:
-                            sensor_prob[idx, j] = 0.0
+                            sensor_prob[idx, j] *= 0.0
                     elif (obst in translated) == ((not legalLoc(nextLoc(loc, obst), self.size)) or (nextLoc(loc, obst) in self.walls)):
                         sensor_prob[idx, j] *= 0.9
                     else:
@@ -113,14 +98,15 @@ class LocAgent:
         if self.prev_action == "forward":
             for idx, loc in enumerate(self.locations):
                 for i, dir in enumerate(dirs):
-                    # if 'bump' in percept:
-                    #     transitions[idx, idx] = 1.0
-                    # elif (nextLoc(loc, dir) not in self.walls) and (legalLoc(nextLoc(loc, dir), self.size)):
-                    if (nextLoc(loc, dir) not in self.walls) and (legalLoc(nextLoc(loc, dir), self.size)):
+                    if 'bump' in percept == ((not legalLoc(nextLoc(loc, dir), self.size)) or (nextLoc(loc, dir) in self.walls)):
+                        transitions[idx, idx] = 1.0
+
+                    elif (nextLoc(loc, dir) not in self.walls) and (legalLoc(nextLoc(loc, dir), self.size)):
                         next_loc = nextLoc(loc, dir)
                         next_idx = self.loc_to_idx[next_loc]
                         transitions[idx + (i * len(self.locations)), next_idx + (i * len(self.locations))] = 0.95
                         transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 0.05
+
                     else:
                         transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 1.0
 
