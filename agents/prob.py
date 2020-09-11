@@ -73,16 +73,17 @@ class LocAgent:
                     pom_dict['bckwd'] = 'E'
                     pom_dict['left'] = 'S'
 
-
                 for elem in percept:
                     if elem != 'bump':
                         translated.append(pom_dict[elem])
 
                 for j, obst in enumerate(dirs):
                     if 'bump' in percept:
-                        if (not legalLoc(nextLoc(loc, obst), self.size) or (nextLoc(loc, obst) in self.walls)): #next loc z neig czy obst czy co?!!!!!!!????????????
+                        if (not legalLoc(nextLoc(loc, obst), self.size) or (nextLoc(loc, obst) in self.walls)):
+                            # if robot hit the wall and next_loc in particular direction is a wall (or not in a map)
                             sensor_prob[idx, j] *= 1.0
                         else:
+                            # if robot hit the wall and next_loc in particular direction is not a wall (and it's contained in the map)
                             sensor_prob[idx, j] *= 0.0
                     elif (obst in translated) == ((not legalLoc(nextLoc(loc, obst), self.size)) or (nextLoc(loc, obst) in self.walls)):
                         sensor_prob[idx, j] *= (1.0 - self.eps_perc)
@@ -92,36 +93,32 @@ class LocAgent:
         sensor_prob = sensor_prob.flatten('F')
 
 
-
         # transition prob
         transitions = np.zeros((4 * len(self.locations), 4 * len(self.locations)), dtype=float)
-        if self.prev_action == "forward":
-            for idx, loc in enumerate(self.locations):
-                for i, dir in enumerate(dirs):
+        for idx, loc in enumerate(self.locations):
+            for i, dir in enumerate(dirs):
+                if self.prev_action == "forward":
+                    # if robot hit the wall and next_loc in particular direction is a wall, robot stay in the same place
                     if 'bump' in percept == ((not legalLoc(nextLoc(loc, dir), self.size)) or (nextLoc(loc, dir) in self.walls)):
                         transitions[idx, idx] = 1.0
-
                     elif (nextLoc(loc, dir) not in self.walls) and (legalLoc(nextLoc(loc, dir), self.size)):
                         next_loc = nextLoc(loc, dir)
                         next_idx = self.loc_to_idx[next_loc]
+                        # robot will change location with (1 - eps_move) possibility
                         transitions[idx + (i * len(self.locations)), next_idx + (i * len(self.locations))] = (1.0 - self.eps_move)
                         transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = self.eps_move
-
                     else:
                         transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = 1.0
 
-        elif self.prev_action == "turnright":
-            for idx, loc in enumerate(self.locations):
-                for i, dir in enumerate(dirs):
-                    transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) + len(self.locations))%(4 * len(self.locations))] = (1.0 - self.eps_move)
+                # robot will change direction with (1 - eps_move) possibility
+                elif self.prev_action == "turnright":
+                    transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) + len(self.locations)) % (4 * len(self.locations))] = (1.0 - self.eps_move)
                     transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = self.eps_move
 
-        elif self.prev_action == "turnleft":
-            for idx, loc in enumerate(self.locations):
-                for i, dir in enumerate(dirs):
-                    transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) - len(self.locations))%(4 * len(self.locations))] = (1.0 - self.eps_move)
+                # robot will change direction with (1 - eps_move) possibility
+                elif self.prev_action == "turnleft":
+                    transitions[idx + (i * len(self.locations)), (idx + (i * len(self.locations)) - len(self.locations)) % (4 * len(self.locations))] = (1.0 - self.eps_move)
                     transitions[idx + (i * len(self.locations)), idx + (i * len(self.locations))] = self.eps_move
-
 
 
 
@@ -133,7 +130,7 @@ class LocAgent:
 
         action = 'forward'
         # TODO CHANGE THIS HEURISTICS TO SPEED UP CONVERGENCE
-
+        #
         # if 'fwd' in percept:
         #     # higher chance of turning left to avoid getting stuck in one location
         #     action = np.random.choice(['turnleft', 'turnright'], 1, p=[0.8, 0.2])
@@ -148,9 +145,7 @@ class LocAgent:
             action = 'forward'
         else:
             action = 'turnleft'
-
-
-
+            
 
         self.prev_action = action
 
