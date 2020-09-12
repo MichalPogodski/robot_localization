@@ -31,7 +31,7 @@ class LocAgent:
         self.loc_to_idx = {loc: idx for idx, loc in enumerate(self.locations)}
         self.eps_perc = eps_perc
         self.eps_move = eps_move
-        self.turnBack = False
+        
         # previous action
         self.prev_action = 'forward'
 
