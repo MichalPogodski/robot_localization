@@ -20,7 +20,7 @@ W wyznaczaniu wartości prawdopodobieństwa uwzględnione zostały możliwe bł�
  na polecenie wykonywania akcji.
 
 
-### Rozkład prawdopodobieństwa występowania przeszkód w miejscach wskazanych przez sensor
+### Rozkład prawdopodobieństwa występowania przeszkód
 został wyznaczony poprzez sprawdzenie sąsiedztwa robota w lokalizacjach wskazanych przez sensor. 
 W tym celu należało określić kierunek (N, E, S  lub W), na podstawie informacji zwracanych przez sensor 
 (dla konkretnego kierunku względem robota, orientacja zamieniona została na kierunek geograficzny).
