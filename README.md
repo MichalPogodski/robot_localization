@@ -41,6 +41,7 @@ prawdopodobieństwa mnożona jest *0.0.
 Niżej opisana heurystyka, w takim zadaniu, daje bardzo dobry rezultat, ponieważ robot nieustannie rejestruje 
 występowanie przeszkód po jednej ze swoich stron. Im więcej lokacji odwiedzi, 
 tym bardziej unikalną sekwencję ścian zarejestruje. 
+Robot wybiera takie sekwencje akcji, które dają mu dużo informacji.
 
 Heurystyka poruszająca robotem bazuje na regule, wedle której można szukać wyjścia z labiryntu. Mianowicie, 
 należy przemieszczać się nie odrywając ręki od prawej (lub lewej) ściany. 
