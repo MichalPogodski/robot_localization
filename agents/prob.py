@@ -31,7 +31,7 @@ class LocAgent:
         self.loc_to_idx = {loc: idx for idx, loc in enumerate(self.locations)}
         self.eps_perc = eps_perc
         self.eps_move = eps_move
-
+        self.turnBack = False
         # previous action
         self.prev_action = 'forward'
 
@@ -130,14 +130,6 @@ class LocAgent:
 
         action = 'forward'
         # TODO CHANGE THIS HEURISTICS TO SPEED UP CONVERGENCE
-        #
-        # if 'fwd' in percept:
-        #     # higher chance of turning left to avoid getting stuck in one location
-        #     action = np.random.choice(['turnleft', 'turnright'], 1, p=[0.8, 0.2])
-        # else:
-        #     # prefer moving forward to explore
-        #     action = np.random.choice(['forward', 'turnleft', 'turnright'], 1, p=[0.8, 0.1, 0.1])
-
 
         if 'right' not in percept and self.prev_action != 'turnright':
             action = 'turnright'
@@ -145,7 +137,6 @@ class LocAgent:
             action = 'forward'
         else:
             action = 'turnleft'
-            
 
         self.prev_action = action
 
