@@ -9,4 +9,4 @@
 * Write algorithm that calculate probability distribution of agent's location and orientation. 
 * Write an heuristick function which allow him to collect most valuable data. 
 
-
+![alt text](/image.png?raw=true)
